@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jiron Netflix Manager PRO</title>
+<style>
+body{font-family:Arial;background:#0f172a;color:white;margin:0}
+header{background:#111827;padding:10px;text-align:center;font-size:20px}
+.container{padding:10px}
+.card{background:#1f2937;padding:10px;margin:10px 0;border-radius:10px}
+input,select,button{width:100%;padding:8px;margin:5px 0;border-radius:5px;border:none}
+button{background:#22c55e;color:white;font-weight:bold}
+.table{width:100%;font-size:12px;border-collapse:collapse}
+th,td{padding:5px;text-align:center}
+.pagado{color:#22c55e;font-weight:bold}
+.pendiente{color:#ef4444;font-weight:bold}
+.btn-small{padding:5px;font-size:10px}
+</style>
+</head>
+<body>
+<header>📺 Jiron Netflix Manager PRO</header>
+<div class="container">
+
+<div class="card">
+<h3>➕ Agregar Cuenta</h3>
+<input id="correo" placeholder="Correo">
+<input id="pass" placeholder="Contraseña">
+<button onclick="agregarCuenta()">Guardar Cuenta</button>
+</div>
+
+<div class="card">
+<h3>👤 Agregar Cliente</h3>
+<input id="cliente" placeholder="Nombre cliente">
+<input id="telefono" placeholder="WhatsApp (ej: 50512345678)">
+<select id="cuentaSelect"></select>
+<select id="perfil">
+<option>Perfil 1</option>
+<option>Perfil 2</option>
+<option>Perfil 3</option>
+<option>Perfil 4</option>
+</select>
+<input type="date" id="fecha">
+<select id="estado">
+<option value="Pagado">Pagado</option>
+<option value="Pendiente">Pendiente</option>
+</select>
+<button onclick="agregarCliente()">Guardar Cliente</button>
+</div>
+
+<div class="card">
+<h3>📊 Clientes</h3>
+<button onclick="filtrarPendientes()">Ver Pendientes</button>
+<button onclick="mostrarTodos()">Ver Todos</button>
+<button onclick="listaCobro()">Lista de Cobro</button>
+<table class="table" id="tablaClientes"></table>
+</div>
+
+</div>
+
+<script>
+let cuentas = JSON.parse(localStorage.getItem('cuentas')) || [];
+let clientes = JSON.parse(localStorage.getItem('clientes')) || [];
+let filtro = 'todos';
+
+function guardar(){
+localStorage.setItem('cuentas',JSON.stringify(cuentas));
+localStorage.setItem('clientes',JSON.stringify(clientes));
+render();
+}
+
+function agregarCuenta(){
+let correo=document.getElementById('correo').value;
+let pass=document.getElementById('pass').value;
+if(!correo || !pass) return alert('Completa datos');
+cuentas.push({correo,pass});
+guardar();
+}
+
+function agregarCliente(){
+let nombre=document.getElementById('cliente').value;
+let telefono=document.getElementById('telefono').value;
+let cuenta=document.getElementById('cuentaSelect').value;
+let perfil=document.getElementById('perfil').value;
+let fecha=document.getElementById('fecha').value;
+let estado=document.getElementById('estado').value;
+if(!nombre || !fecha) return alert('Completa datos');
+clientes.push({nombre,telefono,cuenta,perfil,fecha,estado});
+guardar();
+}
+
+function marcarPagado(i){
+clientes[i].estado='Pagado';
+guardar();
+}
+
+function calcularEstado(fecha,estadoManual){
+let hoy=new Date().toISOString().split('T')[0];
+if(estadoManual==='Pagado') return 'Pagado';
+return fecha < hoy ? 'Pendiente' : estadoManual;
+}
+
+function filtrarPendientes(){filtro='pendientes';render();}
+function mostrarTodos(){filtro='todos';render();}
+
+function enviarWhatsApp(cliente){
+let msg=`Hola ${cliente.nombre}, tu pago de Netflix está pendiente. Por favor realiza el pago.`;
+let url=`https://wa.me/${cliente.telefono}?text=${encodeURIComponent(msg)}`;
+window.open(url,'_blank');
+}
+
+function listaCobro(){
+let pendientes=clientes.filter(c=>calcularEstado(c.fecha,c.estado)==='Pendiente');
+alert('Clientes pendientes hoy: '+pendientes.length);
+}
+
+function render(){
+let select=document.getElementById('cuentaSelect');
+select.innerHTML='';
+cuentas.forEach((c)=>{
+select.innerHTML+=`<option value="${c.correo}">${c.correo}</option>`;
+});
+
+let tabla=document.getElementById('tablaClientes');
+tabla.innerHTML='<tr><th>Nombre</th><th>Perfil</th><th>Pago</th><th>Estado</th><th>Acciones</th></tr>';
+clientes.forEach((c,i)=>{
+let estadoFinal=calcularEstado(c.fecha,c.estado);
+if(filtro==='pendientes' && estadoFinal!=='Pendiente') return;
+let clase=estadoFinal==='Pagado'?'pagado':'pendiente';
+
+tabla.innerHTML+=`<tr>
+<td>${c.nombre}</td>
+<td>${c.perfil}</td>
+<td>${c.fecha}</td>
+<td class="${clase}">${estadoFinal}</td>
+<td>
+<button class="btn-small" onclick="marcarPagado(${i})">✔</button>
+<button class="btn-small" onclick='enviarWhatsApp(${JSON.stringify(c)})'>💬</button>
+</td>
+</tr>`;
+});
+}
+
+render();
+</script>
+</body>
+</html>
