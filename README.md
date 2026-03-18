@@ -1,0 +1,2 @@
+# cotrol-netflix
+control diario
